@@ -7,7 +7,7 @@ const PORT = 3000;
 
 // Serve the single HTML file directly
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/index.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Download endpoint
