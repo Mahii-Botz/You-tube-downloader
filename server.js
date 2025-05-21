@@ -5,28 +5,47 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Serve the index.html file directly from root
+// Serve the index.html file from root
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Download endpoint
+// Download endpoint with full error handling
 app.get('/download', async (req, res) => {
-  const { url, type } = req.query;
+  try {
+    const { url, type } = req.query;
 
-  if (!ytdl.validateURL(url)) {
-    return res.status(400).send('Invalid YouTube URL');
-  }
+    if (!url || !type) {
+      return res.status(400).send('Missing URL or type');
+    }
 
-  const info = await ytdl.getInfo(url);
-  const title = info.videoDetails.title.replace(/[^\w\s]/gi, '');
+    if (!ytdl.validateURL(url)) {
+      return res.status(400).send('Invalid YouTube URL');
+    }
 
-  if (type === 'audio') {
-    res.header('Content-Disposition', `attachment; filename="${title}.mp3"`);
-    ytdl(url, { filter: 'audioonly', quality: 'highestaudio' }).pipe(res);
-  } else {
-    res.header('Content-Disposition', `attachment; filename="${title}.mp4"`);
-    ytdl(url, { quality: 'highestvideo' }).pipe(res);
+    const info = await ytdl.getInfo(url);
+    const title = info.videoDetails.title.replace(/[^\w\s]/gi, '').substring(0, 50); // limit filename length
+
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${title}.${type === 'audio' ? 'mp3' : 'mp4'}"`
+    );
+
+    const downloadStream =
+      type === 'audio'
+        ? ytdl(url, { filter: 'audioonly', quality: 'highestaudio' })
+        : ytdl(url, { quality: 'highestvideo' });
+
+    // Handle stream errors
+    downloadStream.on('error', (err) => {
+      console.error('🚫 Stream error:', err.message);
+      return res.status(500).send('Error during streaming.');
+    });
+
+    downloadStream.pipe(res);
+  } catch (err) {
+    console.error('🔥 Server error:', err.message);
+    res.status(500).send('Something went wrong on the server.');
   }
 });
 
