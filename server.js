@@ -3,9 +3,9 @@ const ytdl = require('ytdl-core');
 const path = require('path');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-// Serve the single HTML file directly
+// Serve the index.html file directly from root
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -14,7 +14,9 @@ app.get('/', (req, res) => {
 app.get('/download', async (req, res) => {
   const { url, type } = req.query;
 
-  if (!ytdl.validateURL(url)) return res.status(400).send('Invalid YouTube URL');
+  if (!ytdl.validateURL(url)) {
+    return res.status(400).send('Invalid YouTube URL');
+  }
 
   const info = await ytdl.getInfo(url);
   const title = info.videoDetails.title.replace(/[^\w\s]/gi, '');
@@ -30,5 +32,5 @@ app.get('/download', async (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
+  console.log(`✅ Server running at http://localhost:${PORT}`);
 });
